@@ -1,10 +1,13 @@
 package in.bitcode.threading1;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -14,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView txtInfo;
     private Button btnDownload;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,67 +31,38 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View view) {
                         //start a thread which will download the data
-                        String [] files = {
+                        String[] files = {
                                 "https://bitcode.in/files/file1.zip",
                                 "https://bitcode.in/files/file2.zip",
                                 "https://bitcode.in/files/file3.zip",
                         };
-                        new DownloadThread().execute(files);
+                        new DownloadThread(
+                                new DownloadHandler()
+                        ).execute(files);
                     }
                 }
         );
     }
 
-    class DownloadThread extends AsyncTask<String, Integer, Float> {
-
-        ProgressDialog progressDialog;
-
+    private class DownloadHandler extends Handler {
         @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            txtInfo.setText("Result: awaited");
-            progressDialog = new ProgressDialog(MainActivity.this);
-            progressDialog.setTitle("BitCode Server");
-            progressDialog.setMessage("Downloading SomeImpFile.pdf");
-            progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            progressDialog.show();
-        }
-
-        @Override
-        protected Float doInBackground(String ... files) {
-
-            for(String file : files) {
-                progressDialog.setMessage("Downloading " + file);
-                for (int i = 0; i <= 100; i++) {
-                    Log.e("tag", "Downloading SomeImpFile.pdf" + i + "%");
-                    //txtInfo.setText("Downloading " + i + "%");
-
-                    Integer [] progressArr = new Integer[1];
-                    progressArr[0] = i;
-                    publishProgress(progressArr);
-
-                    progressDialog.setProgress(i);
-                    try {
-                        Thread.sleep(20);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            if(msg.what == 1) {
+                progressDialog = new ProgressDialog(MainActivity.this);
+                progressDialog.setMessage("Pre Results: " + (String)msg.obj);
+                txtInfo.setText("Pre Res: " + (String) msg.obj);
             }
-            return 12.12f;
-        }
-
-        @Override
-        protected void onProgressUpdate(Integer... values) {
-            super.onProgressUpdate(values);
-            txtInfo.setText("Downloading " + values[0] + "%");
-        }
-
-        @Override
-        protected void onPostExecute(Float res) {
-            super.onPostExecute(res);
-            progressDialog.dismiss();
-            txtInfo.setText("Result: " + res);
+            if(msg.what == 2) {
+                txtInfo.setText("Progress Res: " + (Integer) msg.obj);
+                progressDialog.setMessage("Progress");
+                progressDialog.setProgress((Integer) msg.obj);
+            }
+            if(msg.what == 3) {
+                txtInfo.setText("Final Res: " + (Float) msg.obj);
+                progressDialog.setMessage("Final Result: " + (Float) msg.obj);
+                progressDialog.dismiss();
+            }
         }
     }
 }
